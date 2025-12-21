@@ -253,18 +253,18 @@ function MyComponent() {
 
 ## Examples
 
-### Example 1: Members Table with Numbered Pagination
+### Example 1: Data Table with Numbered Pagination
 ```tsx
 import { DataTable } from '@/components/common/DataTable';
 import { NumberedPagination } from '@/components/common/Pagination';
 
 <DataTable
-  data={members}
-  columns={memberColumns}
+  data={items}
+  columns={itemColumns}
   pagination={{
     pageIndex,
     pageSize,
-    totalPages: Math.ceil(totalMembers / pageSize),
+    totalPages: Math.ceil(totalItems / pageSize),
     canNextPage: pageIndex < totalPages - 1,
     onPageChange: setPageIndex,
     onPageSizeChange: setPageSize,

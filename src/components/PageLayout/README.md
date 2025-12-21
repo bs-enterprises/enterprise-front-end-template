@@ -1,6 +1,6 @@
 # PageLayout Component System
 
-A reusable page layout component system that provides consistent structure and functionality across all pages.
+A reusable page layout component system that provides consistent structure and functionality across all pages in your application.
 
 ## Architecture
 
@@ -17,10 +17,10 @@ PageLayout/
 ### PageLayout
 
 Main container component that provides:
-- **Toolbar section** - Fixed at top with bottom border
+- **Toolbar section** - Fixed at top with bottom border for search, filters, and actions
 - **Content area** - Scrollable main content with configurable padding
 - **Scroll-to-top button** - Auto-shows/hides based on scroll position
-- **Empty state support** - Built-in empty state handling
+- **Empty state support** - Built-in empty state handling for when data is unavailable
 
 #### Props
 
@@ -68,20 +68,20 @@ export function MyPage() {
 
 ```tsx
 import { PageLayout, EmptyState } from '@/components/PageLayout';
-import { Building2 } from 'lucide-react';
+import { FileQuestion } from 'lucide-react';
 
 export function MyPage() {
-  const { selectedStudioScope } = useLayoutContext();
+  const hasData = data.length > 0;
 
   return (
     <PageLayout
       toolbar={<GenericToolbar {...toolbarProps} />}
-      showEmptyState={!selectedStudioScope}
+      showEmptyState={!hasData}
       emptyState={
         <EmptyState
-          icon={<Building2 className="h-12 w-12 text-muted-foreground" />}
-          title="Please select a studio"
-          description="You need to select a studio from the studio selector to view members."
+          icon={<FileQuestion className="h-12 w-12 text-muted-foreground" />}
+          title="No data available"
+          description="There is no data to display. Try adjusting your filters or add new items."
         />
       }
     >
@@ -145,7 +145,7 @@ interface EmptyStateProps {
 
 ```tsx
 import { EmptyState } from '@/components/PageLayout';
-import { Building2, UserPlus } from 'lucide-react';
+import { FileQuestion, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Simple text only
@@ -156,19 +156,19 @@ import { Button } from '@/components/ui/button';
 
 // With icon
 <EmptyState
-  icon={<Building2 className="h-12 w-12 text-muted-foreground" />}
-  title="No studio selected"
-  description="Please select a studio to continue"
+  icon={<FileQuestion className="h-12 w-12 text-muted-foreground" />}
+  title="No items found"
+  description="Start by adding your first item to this list"
 />
 
 // With action button
 <EmptyState
-  icon={<UserPlus className="h-12 w-12 text-muted-foreground" />}
-  title="No members found"
-  description="Start by adding your first member"
+  icon={<Plus className="h-12 w-12 text-muted-foreground" />}
+  title="No records found"
+  description="Start by adding your first record"
   action={
-    <Button onClick={handleAddMember}>
-      Add Member
+    <Button onClick={handleAddItem}>
+      Add Item
     </Button>
   }
 />
@@ -183,16 +183,16 @@ import { Button } from '@/components/ui/button';
 
 ## Integration Examples
 
-### Members Page
+### Data List Page
 
 ```tsx
 import { PageLayout, EmptyState } from '@/components/PageLayout';
 import { GenericToolbar } from '@/components/GenericToolbar';
-import { MembersTable } from './MembersTable';
-import { Building2 } from 'lucide-react';
+import { DataListTable } from './DataListTable';
+import { FileQuestion } from 'lucide-react';
 
-export function Members() {
-  const { selectedStudioScope } = useLayoutContext();
+export function DataListPage() {
+  const [data, setData] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
   
@@ -201,7 +201,7 @@ export function Members() {
       toolbar={
         <GenericToolbar
           showSearch={true}
-          searchPlaceholder="Search members..."
+          searchPlaceholder="Search items..."
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
           showFilters={true}
@@ -210,17 +210,17 @@ export function Members() {
           // ... other props
         />
       }
-      showEmptyState={!selectedStudioScope}
+      showEmptyState={!hasData}
       emptyState={
         <EmptyState
-          icon={<Building2 className="h-12 w-12 text-muted-foreground" />}
-          title="Please select a studio"
-          description="You need to select a studio from the studio selector to view members."
+          icon={<FileQuestion className="h-12 w-12 text-muted-foreground" />}
+          title="No data available"
+          description="There is no data to display. Try adjusting your filters or add new items."
         />
       }
       bottomPadding="pb-20"  // For fixed pagination
     >
-      <MembersTable
+      <DataTable
         searchTerm={searchTerm}
         activeFilters={activeFilters}
         // ... other props
@@ -230,23 +230,23 @@ export function Members() {
 }
 ```
 
-### Staff Page
+### Products Page
 
 ```tsx
 import { PageLayout, EmptyState } from '@/components/PageLayout';
-import { StaffTable } from './StaffTable';
+import { ProductsTable } from './ProductsTable';
 
-export function Staff() {
-  const { selectedStudioScope } = useLayoutContext();
+export function Products() {
+  const hasProducts = products.length > 0;
   
   return (
     <PageLayout
       toolbar={<GenericToolbar {...toolbarProps} />}
-      showEmptyState={!selectedStudioScope}
+      showEmptyState={!hasProducts}
       emptyState={
         <EmptyState
-          title="Please select a studio"
-          description="You need to select a studio from the studio selector to view staff."
+          title="No products found"
+          description="Start by adding your first product to the catalog."
         />
       }
       onScrollTop={() => {
@@ -254,11 +254,9 @@ export function Staff() {
         console.log('Scrolled to top');
       }}
     >
-      <AllUsersProvider>
-        <StaffProvider>
-          <StaffTable {...tableProps} />
-        </StaffProvider>
-      </AllUsersProvider>
+      <ProductsProvider>
+        <ProductsTable {...tableProps} />
+      </ProductsProvider>
     </PageLayout>
   );
 }
@@ -350,10 +348,10 @@ export function MyPage() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
-  if (!selectedStudioScope) {
+  if (!hasData) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
-        <h3>Please select a studio</h3>
+        <h3>No data available</h3>
       </div>
     );
   }
@@ -380,16 +378,16 @@ export function MyPage() {
 
 ```tsx
 export function MyPage() {
-  const { selectedStudioScope } = useLayoutContext();
+  const hasData = data.length > 0;
   
   return (
     <PageLayout
       toolbar={<GenericToolbar {...props} />}
-      showEmptyState={!selectedStudioScope}
+      showEmptyState={!hasData}
       emptyState={
         <EmptyState
-          title="Please select a studio"
-          description="You need to select a studio to view content."
+          title="No data available"
+          description="There is no data to display. Add new items to get started."
         />
       }
     >
@@ -497,4 +495,4 @@ function MyPageLayout({ customProp, ...layoutProps }: MyPageLayoutProps) {
 - **DataTable** - Table component with pagination
 - **Layout** - Main app layout with sidebar and header
 - **Sidebar** - Navigation sidebar
-- **Header** - Top header with studio selector
+- **Header** - Top header with toolbar and actions

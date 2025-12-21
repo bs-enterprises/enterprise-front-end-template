@@ -43,7 +43,7 @@
 
 ```
 ┌──────────────┐
-│    Context   │  (MembersContext, UsersContext, etc.)
+│    Context   │  (DataContext, ItemsContext, etc.)
 │  - data      │
 │  - loading   │
 │  - refresh   │
@@ -53,7 +53,7 @@
        │ Provides
        ↓
 ┌──────────────────┐
-│ Page Component   │  (Members.tsx, Users.tsx, etc.)
+│ Page Component   │  (DataList.tsx, Items.tsx, etc.)
 │  - Search        │
 │  - Filters       │
 │  - Actions       │
@@ -97,7 +97,7 @@
 ### Pattern 2: With Context
 ```tsx
 const context = {
-  data: members,
+  data: items,
   loading,
   refresh,
   create,
@@ -106,7 +106,7 @@ const context = {
 };
 
 <DataTable
-  data={members}
+  data={items}
   columns={columns}
   context={context}
 />

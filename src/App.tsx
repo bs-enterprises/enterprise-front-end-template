@@ -1,94 +1,64 @@
-import { MainLayout } from "./components/main-layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { LayoutWithAppShell } from './components/AppShell';
+import { RequireAuth } from './components/RequireAuth';
+import { Toaster } from './components/ui/toaster';
+import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { LayoutProvider } from './contexts/LayoutContext';
+
+// Auth modules
+import { Login } from './modules/auth/Login';
+import { Signup } from './modules/auth/Signup';
+import { ForgotPassword } from './modules/auth/ForgotPassword';
+
+// Main application modules
+import { Dashboard } from './modules/dashboard/Dashboard';
+import { Settings } from './modules/settings/Settings';
+import { Support } from './modules/support/Support';
+
+// Account modules
+import { Profile } from './modules/account/Profile';
+import { SessionInspector } from './modules/account/SessionInspector';
 
 function App() {
-  const techStack = [
-    "React 18",
-    "Vite",
-    "TypeScript",
-    "Tailwind CSS",
-    "shadcn/ui",
-  ];
-
   return (
-    <MainLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Frontend Template
-          </h1>
-          <p className="text-muted-foreground">
-            A minimal, production-ready template for modern web applications
-          </p>
-        </div>
+    <ThemeProvider>
+      <AuthProvider>
+        <LayoutProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public auth routes */}
+              <Route path="/auth/login" element={<Login />} />
+              <Route path="/auth/signup" element={<Signup />} />
+              <Route path="/auth/forgot" element={<ForgotPassword />} />
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tech Stack</CardTitle>
-              <CardDescription>Built with modern technologies</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {techStack.map((tech) => (
-                  <Badge key={tech} variant="secondary">
-                    {tech}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+              {/* Protected routes - rendered inside LayoutWithAppShell */}
+              <Route
+                element={
+                  <RequireAuth>
+                    <LayoutWithAppShell />
+                  </RequireAuth>
+                }
+              >
+                {/* Main application routes */}
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/support" element={<Support />} />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Features</CardTitle>
-              <CardDescription>Out of the box capabilities</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="list-inside list-disc space-y-1 text-sm">
-                <li>Dark/Light theme support</li>
-                <li>Responsive layout</li>
-                <li>Type-safe development</li>
-                <li>Component library</li>
-              </ul>
-            </CardContent>
-          </Card>
+                {/* Account routes */}
+                <Route path="/account/profile" element={<Profile />} />
+                <Route path="/account/inspector" element={<SessionInspector />} />
+              </Route>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Ready to Use</CardTitle>
-              <CardDescription>Start building immediately</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                All dependencies installed and configured. Just start coding
-                your application logic.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Getting Started</CardTitle>
-            <CardDescription>
-              This template includes everything you need
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="text-sm">
-              The project is pre-configured with React, Vite, TypeScript,
-              Tailwind CSS, and the complete shadcn/ui component library.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Replace this content with your application and maintain the same
-              structure and conventions for consistency across projects.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </MainLayout>
+              {/* Redirect root and unknown routes */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </BrowserRouter>
+          <Toaster />
+        </LayoutProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
