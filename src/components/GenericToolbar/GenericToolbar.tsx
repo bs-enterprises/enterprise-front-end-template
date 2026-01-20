@@ -14,6 +14,9 @@ import {
   ChevronDown,
   ChevronUp,
   Check,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import {
   Select,
@@ -48,6 +51,10 @@ export const GenericToolbar: React.FC<GenericToolbarProps> = ({
   showExport = false,
   onExportAll,
   onExportResults,
+  showSort = false,
+  sortableFields = [],
+  currentSort = null,
+  onSortChange,
   showFilters = false,
   availableFilters = [],
   activeFilters = [],
@@ -85,6 +92,18 @@ export const GenericToolbar: React.FC<GenericToolbarProps> = ({
     return ids;
   }, [externalFilterControllers]);
 
+  // Helper function to extract current external filters from activeFilters
+  const extractExternalFilters = (): ActiveFilter[] => {
+    return (activeFilters || []).filter(f => externalFilterIds.has(f.filterId));
+  };
+
+  // Merge external filters with user-selected filters
+  // This provides a complete filter set that includes both user selections and programmatic filters
+  const mergedFilters = useMemo(() => {
+    const externalFilters = extractExternalFilters();
+    return [...externalFilters, ...pendingFilters];
+  }, [pendingFilters, externalFilterIds, activeFilters]);
+
   // Handle filter mode change and reset operators to default when switching to basic
   const handleFilterModeChange = (mode: 'basic' | 'advanced') => {
     setFilterMode(mode);
@@ -105,8 +124,7 @@ export const GenericToolbar: React.FC<GenericToolbarProps> = ({
       });
       
       setPendingFilters(updatedFilters);
-      // Auto-apply the operator changes
-      onFiltersChange?.(updatedFilters);
+      // The auto-notify useEffect will handle merging and calling onFiltersChange
     }
   };
 
@@ -120,6 +138,18 @@ export const GenericToolbar: React.FC<GenericToolbarProps> = ({
     setPendingFilters(activeFilters || []);
   }, [activeFilters]);
 
+  // Auto-notify parent when merged filters change
+  // This ensures parent always has the complete set of filters (external + user-selected)
+  useEffect(() => {
+    const currentMerged = JSON.stringify(mergedFilters);
+    const parentActive = JSON.stringify(activeFilters || []);
+    
+    // Only notify if merged differs from what parent currently has
+    if (currentMerged !== parentActive && onFiltersChange) {
+      onFiltersChange(mergedFilters);
+    }
+  }, [mergedFilters]);
+
   // Check if there are unapplied text-based filter changes
   const hasPendingTextFilters = pendingFilters.some((pf) => {
     const filterDef = availableFilters.find(f => f.id === pf.filterId);
@@ -131,7 +161,6 @@ export const GenericToolbar: React.FC<GenericToolbarProps> = ({
 
   // Check if there are unapplied changes
   const hasUnappliedSearchChange = localSearchValue !== searchValue;
-  const hasUnappliedFilterChanges = JSON.stringify(pendingFilters) !== JSON.stringify(activeFilters || []);
   const hasUnappliedTextChanges = hasUnappliedSearchChange || hasPendingTextFilters;
 
   // Handle search input change with debouncing
@@ -170,10 +199,8 @@ export const GenericToolbar: React.FC<GenericToolbarProps> = ({
       onSearchChange?.(localSearchValue);
     }
     
-    // Apply filters if changed
-    if (hasUnappliedFilterChanges) {
-      onFiltersChange?.(pendingFilters);
-    }
+    // Filters will be auto-applied via the mergedFilters useEffect
+    // No need to explicitly call onFiltersChange here
   };
 
   // Cleanup debounce timer on unmount
@@ -209,8 +236,7 @@ export const GenericToolbar: React.FC<GenericToolbarProps> = ({
   const handleRemoveFilter = (filterId: string) => {
     const updatedFilters = pendingFilters.filter((f) => f.id !== filterId);
     setPendingFilters(updatedFilters);
-    // Apply the filter removal immediately
-    onFiltersChange?.(updatedFilters);
+    // The auto-notify useEffect will handle merging and calling onFiltersChange
   };
 
   const handleFilterValueChange = (filterId: string, value: any, filterType: string) => {
@@ -221,9 +247,8 @@ export const GenericToolbar: React.FC<GenericToolbarProps> = ({
     setPendingFilters(updatedFilters);
 
     // Auto-apply for non-text filters (select, multiselect, date, checkbox, number)
+    // The mergedFilters useEffect will handle calling onFiltersChange with merged filters
     if (filterType !== 'text') {
-      // Apply immediately for selection-based filters
-      onFiltersChange?.(updatedFilters);
       // Also apply search if there's an unapplied change
       if (hasUnappliedSearchChange) {
         if (searchDebounceRef.current) {
@@ -241,8 +266,7 @@ export const GenericToolbar: React.FC<GenericToolbarProps> = ({
     );
     setPendingFilters(updatedFilters);
     
-    // Auto-apply the operator change with retained values
-    onFiltersChange?.(updatedFilters);
+    // The auto-notify useEffect will handle merging and calling onFiltersChange
     // Also apply search if there's an unapplied change
     if (hasUnappliedSearchChange) {
       if (searchDebounceRef.current) {
@@ -257,7 +281,7 @@ export const GenericToolbar: React.FC<GenericToolbarProps> = ({
     setLocalSearchValue('');
     // Apply immediately when clearing
     onSearchChange?.('');
-    onFiltersChange?.([]);
+    // The auto-notify useEffect will handle merging external filters and calling onFiltersChange
   };
 
   // Get filters that are not yet active (exclude currently active AND external filters)
@@ -413,6 +437,91 @@ export const GenericToolbar: React.FC<GenericToolbarProps> = ({
                   >
                     Export Results
                   </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Sort Dropdown */}
+          {showSort && sortableFields && sortableFields.length > 0 && onSortChange && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <ArrowUpDown className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sort</span>
+                  {currentSort && (
+                    currentSort.direction === 1 ? (
+                      <ArrowUp className="h-3 w-3 text-muted-foreground" />
+                    ) : (
+                      <ArrowDown className="h-3 w-3 text-muted-foreground" />
+                    )
+                  )}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {sortableFields.map((field) => {
+                  const isActive = currentSort?.field === field.id;
+                  const currentDirection = isActive ? currentSort?.direction : null;
+                  
+                  return (
+                    <DropdownMenuItem
+                      key={field.id}
+                      onClick={() => {
+                        if (!isActive) {
+                          // First click: sort ascending
+                          onSortChange({ field: field.id, direction: 1 });
+                        } else if (currentDirection === 1) {
+                          // Second click: sort descending
+                          onSortChange({ field: field.id, direction: -1 });
+                        } else {
+                          // Third click: clear sort
+                          onSortChange(null);
+                        }
+                      }}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        {field.label}
+                        {field.type === 'date' && (
+                          <span className="text-xs text-muted-foreground">(Date)</span>
+                        )}
+                        {field.type === 'text' && (
+                          <span className="text-xs text-muted-foreground">(A-Z)</span>
+                        )}
+                        {field.type === 'number' && (
+                          <span className="text-xs text-muted-foreground">(0-9)</span>
+                        )}
+                      </span>
+                      {isActive && (
+                        <span className="flex items-center gap-1">
+                          {currentDirection === 1 ? (
+                            <>
+                              <ArrowUp className="h-3 w-3" />
+                              <span className="text-xs">Asc</span>
+                            </>
+                          ) : (
+                            <>
+                              <ArrowDown className="h-3 w-3" />
+                              <span className="text-xs">Desc</span>
+                            </>
+                          )}
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
+                {currentSort && (
+                  <>
+                    <Separator className="my-1" />
+                    <DropdownMenuItem
+                      onClick={() => onSortChange(null)}
+                      className="text-muted-foreground"
+                    >
+                      <X className="h-3 w-3 mr-2" />
+                      Clear Sort
+                    </DropdownMenuItem>
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
